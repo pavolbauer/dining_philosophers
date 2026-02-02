@@ -2,9 +2,11 @@
 // Based on EUROSIM Comparison C10 specification
 
 class DiningPhilosophers {
-    constructor(canvas) {
+    constructor(canvas, timelineCanvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
+        this.timelineCanvas = timelineCanvas;
+        this.timelineCtx = timelineCanvas.getContext('2d');
         this.numPhilosophers = 5;
         this.currentTime = 0;
         this.eventQueue = [];
@@ -15,6 +17,10 @@ class DiningPhilosophers {
         this.speed = 5;
         this.strategy = 'basic';
         this.waiterPermissions = 4; // For waiter strategy
+        
+        // Timeline tracking
+        this.stateHistory = [];
+        this.timeWindow = 100; // Show last 100 time units
         
         // Statistics
         this.stats = {
@@ -30,6 +36,7 @@ class DiningPhilosophers {
     initialize() {
         this.currentTime = 0;
         this.eventQueue = [];
+        this.stateHistory = [];
         this.stats = {
             eventCount: 0,
             conflictCount: 0,
@@ -74,6 +81,7 @@ class DiningPhilosophers {
         
         this.draw();
         this.updateStats();
+        this.drawTimeline();
     }
     
     // Discrete uniform distribution [1, 10] as per C10
@@ -123,8 +131,13 @@ class DiningPhilosophers {
         }
         
         this.stats.eventCount++;
+        
+        // Record state history for timeline
+        this.recordStateHistory();
+        
         this.draw();
         this.updateStats();
+        this.drawTimeline();
         
         return true;
     }
@@ -639,6 +652,191 @@ class DiningPhilosophers {
         this.strategy = strategy;
         this.reset();
     }
+    
+    // Timeline visualization methods
+    recordStateHistory() {
+        const currentStates = this.philosophers.map(phil => phil.state);
+        this.stateHistory.push({
+            time: this.currentTime,
+            states: currentStates
+        });
+    }
+    
+    clearTimeline() {
+        this.stateHistory = [];
+        this.drawTimeline();
+    }
+    
+    drawTimeline() {
+        const canvas = this.timelineCanvas;
+        const ctx = this.timelineCtx;
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // Clear canvas
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        
+        if (this.stateHistory.length === 0) {
+            // Draw empty state message
+            ctx.fillStyle = '#999';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Timeline will appear when simulation runs...', width / 2, height / 2);
+            return;
+        }
+        
+        // Calculate display range
+        const maxTime = this.currentTime;
+        const minTime = Math.max(0, maxTime - this.timeWindow);
+        
+        // Filter history to visible range
+        const visibleHistory = this.stateHistory.filter(h => h.time >= minTime && h.time <= maxTime);
+        
+        if (visibleHistory.length === 0) return;
+        
+        // Layout parameters
+        const margin = { top: 40, right: 40, bottom: 40, left: 80 };
+        const chartWidth = width - margin.left - margin.right;
+        const chartHeight = height - margin.top - margin.bottom;
+        const rowHeight = chartHeight / this.numPhilosophers;
+        
+        // State colors
+        const stateColors = {
+            'THINKING': '#2196F3',
+            'HUNGRY': '#ff9800',
+            'EATING': '#4CAF50',
+            'WAITING': '#f44336',
+            'DEADLOCK': '#9C27B0'
+        };
+        
+        // Draw background grid
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= this.numPhilosophers; i++) {
+            const y = margin.top + i * rowHeight;
+            ctx.beginPath();
+            ctx.moveTo(margin.left, y);
+            ctx.lineTo(width - margin.right, y);
+            ctx.stroke();
+        }
+        
+        // Draw vertical time grid lines (every 10 time units)
+        const timeRange = Math.max(this.timeWindow, maxTime - minTime);
+        const timeStep = Math.max(1, Math.floor(timeRange / 10));
+        for (let t = Math.ceil(minTime / timeStep) * timeStep; t <= maxTime; t += timeStep) {
+            const x = margin.left + ((t - minTime) / timeRange) * chartWidth;
+            ctx.beginPath();
+            ctx.moveTo(x, margin.top);
+            ctx.lineTo(x, height - margin.bottom);
+            ctx.stroke();
+            
+            // Draw time label
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(t.toString(), x, height - margin.bottom + 20);
+        }
+        
+        // Draw philosopher labels
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i < this.numPhilosophers; i++) {
+            const y = margin.top + i * rowHeight + rowHeight / 2;
+            ctx.fillText(`Phil ${i}`, margin.left - 10, y);
+        }
+        
+        // Draw title
+        ctx.fillStyle = '#667eea';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('State History Over Time', width / 2, 20);
+        
+        // Draw axis labels
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Time', width / 2, height - 5);
+        
+        // Draw state bars
+        for (let i = 0; i < visibleHistory.length - 1; i++) {
+            const current = visibleHistory[i];
+            const next = visibleHistory[i + 1];
+            
+            const x1 = margin.left + ((current.time - minTime) / timeRange) * chartWidth;
+            const x2 = margin.left + ((next.time - minTime) / timeRange) * chartWidth;
+            const barWidth = Math.max(1, x2 - x1);
+            
+            for (let p = 0; p < this.numPhilosophers; p++) {
+                const state = current.states[p];
+                const y = margin.top + p * rowHeight;
+                
+                ctx.fillStyle = stateColors[state] || '#ccc';
+                ctx.fillRect(x1, y + 2, barWidth, rowHeight - 4);
+                
+                // Draw border
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(x1, y + 2, barWidth, rowHeight - 4);
+            }
+        }
+        
+        // Draw the last state extending to current time
+        if (visibleHistory.length > 0) {
+            const last = visibleHistory[visibleHistory.length - 1];
+            const x1 = margin.left + ((last.time - minTime) / timeRange) * chartWidth;
+            const x2 = margin.left + ((maxTime - minTime) / timeRange) * chartWidth;
+            const barWidth = Math.max(1, x2 - x1);
+            
+            for (let p = 0; p < this.numPhilosophers; p++) {
+                const state = last.states[p];
+                const y = margin.top + p * rowHeight;
+                
+                ctx.fillStyle = stateColors[state] || '#ccc';
+                ctx.fillRect(x1, y + 2, barWidth, rowHeight - 4);
+                
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(x1, y + 2, barWidth, rowHeight - 4);
+            }
+        }
+        
+        // Draw current time indicator
+        const currentX = margin.left + ((maxTime - minTime) / timeRange) * chartWidth;
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(currentX, margin.top);
+        ctx.lineTo(currentX, height - margin.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Draw legend
+        const legendX = width - margin.right - 120;
+        const legendY = margin.top + 10;
+        const states = ['THINKING', 'HUNGRY', 'EATING', 'WAITING', 'DEADLOCK'];
+        
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'left';
+        states.forEach((state, i) => {
+            const y = legendY + i * 18;
+            
+            // Color box
+            ctx.fillStyle = stateColors[state];
+            ctx.fillRect(legendX, y, 15, 12);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(legendX, y, 15, 12);
+            
+            // Label
+            ctx.fillStyle = '#333';
+            ctx.fillText(state, legendX + 20, y + 10);
+        });
+    }
 }
 
 // Initialize the simulation when page loads
@@ -646,7 +844,8 @@ let simulation;
 
 window.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('simulationCanvas');
-    simulation = new DiningPhilosophers(canvas);
+    const timelineCanvas = document.getElementById('timelineCanvas');
+    simulation = new DiningPhilosophers(canvas, timelineCanvas);
     
     // Button controls
     document.getElementById('startBtn').addEventListener('click', () => {
@@ -694,5 +893,9 @@ window.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('strategySelect').addEventListener('change', (e) => {
         simulation.setStrategy(e.target.value);
+    });
+    
+    document.getElementById('clearTimelineBtn').addEventListener('click', () => {
+        simulation.clearTimeline();
     });
 });

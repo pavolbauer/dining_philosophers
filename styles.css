@@ -352,3 +352,36 @@ footer p {
 .card {
     animation: fadeIn 0.5s ease-out;
 }
+
+/* Timeline Section */
+.timeline-section {
+    margin-bottom: 30px;
+}
+
+.timeline-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.timeline-info {
+    color: #555;
+    font-weight: bold;
+}
+
+.timeline-info span {
+    color: #667eea;
+}
+
+#timelineCanvas {
+    border: 2px solid #667eea;
+    border-radius: 10px;
+    max-width: 100%;
+    height: auto;
+    background: white;
+    display: block;
+}
