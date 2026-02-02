@@ -3,10 +3,19 @@
 
 class DiningPhilosophers {
     constructor(canvas, timelineCanvas) {
+        if (!canvas || !timelineCanvas) {
+            throw new Error('Canvas elements are required');
+        }
+        
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.timelineCanvas = timelineCanvas;
         this.timelineCtx = timelineCanvas.getContext('2d');
+        
+        if (!this.ctx || !this.timelineCtx) {
+            throw new Error('Could not get canvas 2d context');
+        }
+        
         this.numPhilosophers = 5;
         this.currentTime = 0;
         this.eventQueue = [];
@@ -29,6 +38,10 @@ class DiningPhilosophers {
             deadlockDetected: false,
             startTime: 0
         };
+        
+        // Prevent infinite loops
+        this.maxEventsPerRun = 1000;
+        this.eventsProcessed = 0;
         
         this.initialize();
     }
@@ -370,43 +383,53 @@ class DiningPhilosophers {
     
     // Visualization
     draw() {
-        const ctx = this.ctx;
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const tableRadius = 100;
-        const philRadius = 60;
-        const philDistance = 200;
-        
-        // Clear canvas
-        ctx.fillStyle = '#f5f5f5';
-        ctx.fillRect(0, 0, width, height);
-        
-        // Draw table
-        ctx.fillStyle = '#8B4513';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, tableRadius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#654321';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        
-        // Draw philosophers and chopsticks
-        for (let i = 0; i < this.numPhilosophers; i++) {
-            const angle = (i * 2 * Math.PI / this.numPhilosophers) - Math.PI / 2;
-            const x = centerX + Math.cos(angle) * philDistance;
-            const y = centerY + Math.sin(angle) * philDistance;
-            
-            // Draw chopstick
-            this.drawChopstick(i, angle, centerX, centerY, tableRadius);
-            
-            // Draw philosopher
-            this.drawPhilosopher(this.philosophers[i], x, y, philRadius);
+        if (!this.ctx || !this.canvas) {
+            console.error('Canvas or context not available');
+            return;
         }
         
-        // Draw legend in corner
-        this.drawSimulationInfo();
+        try {
+            const ctx = this.ctx;
+            const width = this.canvas.width;
+            const height = this.canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const tableRadius = 100;
+            const philRadius = 60;
+            const philDistance = 200;
+            
+            // Clear canvas
+            ctx.fillStyle = '#f5f5f5';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw table
+            ctx.fillStyle = '#8B4513';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, tableRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#654321';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Draw philosophers and chopsticks
+            for (let i = 0; i < this.numPhilosophers; i++) {
+                const angle = (i * 2 * Math.PI / this.numPhilosophers) - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * philDistance;
+                const y = centerY + Math.sin(angle) * philDistance;
+                
+                // Draw chopstick
+                this.drawChopstick(i, angle, centerX, centerY, tableRadius);
+                
+                // Draw philosopher
+                this.drawPhilosopher(this.philosophers[i], x, y, philRadius);
+            }
+            
+            // Draw legend in corner
+            this.drawSimulationInfo();
+        } catch (error) {
+            console.error('Error in draw():', error);
+            return;
+        }
     }
     
     drawChopstick(id, angle, centerX, centerY, tableRadius) {
@@ -541,44 +564,6 @@ class DiningPhilosophers {
         document.getElementById('eventCount').textContent = this.stats.eventCount;
         document.getElementById('conflictCount').textContent = this.stats.conflictCount;
         document.getElementById('deadlockStatus').textContent = this.stats.deadlockDetected ? 'YES!' : 'No';
-        
-        // Update philosopher stats
-        const statsDiv = document.getElementById('philosopherStats');
-        statsDiv.innerHTML = '';
-        
-        this.philosophers.forEach(phil => {
-            const div = document.createElement('div');
-            div.className = 'philosopher-stat';
-            
-            const avgThink = phil.stats.thinkingCount > 0 ? 
-                (phil.stats.thinkingTime / phil.stats.thinkingCount).toFixed(2) : 0;
-            const avgEat = phil.stats.eatingCount > 0 ? 
-                (phil.stats.eatingTime / phil.stats.eatingCount).toFixed(2) : 0;
-            const avgWait = phil.stats.waitingCount > 0 ? 
-                (phil.stats.waitingTime / phil.stats.waitingCount).toFixed(2) : 0;
-            
-            div.innerHTML = `
-                <h4>Philosopher ${phil.id}</h4>
-                <div class="philosopher-stat-row">
-                    <span>State:</span>
-                    <span>${phil.state}</span>
-                </div>
-                <div class="philosopher-stat-row">
-                    <span>Avg Think:</span>
-                    <span>${avgThink}</span>
-                </div>
-                <div class="philosopher-stat-row">
-                    <span>Avg Eat:</span>
-                    <span>${avgEat}</span>
-                </div>
-                <div class="philosopher-stat-row">
-                    <span>Avg Wait:</span>
-                    <span>${avgWait}</span>
-                </div>
-            `;
-            
-            statsDiv.appendChild(div);
-        });
     }
     
     showDeadlockMessage() {
@@ -627,11 +612,29 @@ class DiningPhilosophers {
     run() {
         if (!this.running || this.paused) return;
         
+        this.eventsProcessed = 0;
+        
         const processEvents = () => {
             if (!this.running || this.paused) return;
             
-            if (this.processNextEvent()) {
-                setTimeout(processEvents, 1000 / this.speed);
+            // Safety check to prevent infinite loops
+            this.eventsProcessed++;
+            if (this.eventsProcessed > this.maxEventsPerRun) {
+                console.warn('Maximum events per run exceeded, pausing...');
+                this.pause();
+                document.getElementById('statusMessage').textContent = 'Paused: Too many events processed';
+                return;
+            }
+            
+            try {
+                if (this.processNextEvent()) {
+                    setTimeout(processEvents, 1000 / this.speed);
+                }
+            } catch (error) {
+                console.error('Error processing event:', error);
+                this.running = false;
+                document.getElementById('statusMessage').textContent = 'Error: ' + error.message;
+                document.getElementById('statusMessage').className = 'status-message deadlock';
             }
         };
         
@@ -668,28 +671,34 @@ class DiningPhilosophers {
     }
     
     drawTimeline() {
-        const canvas = this.timelineCanvas;
-        const ctx = this.timelineCtx;
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        // Clear canvas
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
-        
-        if (this.stateHistory.length === 0) {
-            // Draw empty state message
-            ctx.fillStyle = '#999';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('Timeline will appear when simulation runs...', width / 2, height / 2);
+        if (!this.timelineCtx || !this.timelineCanvas) {
+            console.error('Timeline canvas or context not available');
             return;
         }
         
-        // Calculate display range
-        const maxTime = this.currentTime;
-        const minTime = Math.max(0, maxTime - this.timeWindow);
+        try {
+            const canvas = this.timelineCanvas;
+            const ctx = this.timelineCtx;
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            
+            if (this.stateHistory.length === 0) {
+                // Draw empty state message
+                ctx.fillStyle = '#999';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Timeline will appear when simulation runs...', width / 2, height / 2);
+                return;
+            }
+            
+            // Calculate display range
+            const maxTime = this.currentTime;
+            const minTime = Math.max(0, maxTime - this.timeWindow);
         
         // Filter history to visible range
         const visibleHistory = this.stateHistory.filter(h => h.time >= minTime && h.time <= maxTime);
@@ -820,41 +829,85 @@ class DiningPhilosophers {
         const legendY = margin.top + 10;
         const states = ['THINKING', 'HUNGRY', 'EATING', 'WAITING', 'DEADLOCK'];
         
-        ctx.font = '11px Arial';
-        ctx.textAlign = 'left';
-        states.forEach((state, i) => {
-            const y = legendY + i * 18;
-            
-            // Color box
-            ctx.fillStyle = stateColors[state];
-            ctx.fillRect(legendX, y, 15, 12);
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(legendX, y, 15, 12);
-            
-            // Label
-            ctx.fillStyle = '#333';
-            ctx.fillText(state, legendX + 20, y + 10);
-        });
+            ctx.font = '11px Arial';
+            ctx.textAlign = 'left';
+            states.forEach((state, i) => {
+                const y = legendY + i * 18;
+                
+                // Color box
+                ctx.fillStyle = stateColors[state];
+                ctx.fillRect(legendX, y, 15, 12);
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(legendX, y, 15, 12);
+                
+                // Label
+                ctx.fillStyle = '#333';
+                ctx.fillText(state, legendX + 20, y + 10);
+            });
+        } catch (error) {
+            console.error('Error drawing timeline content:', error);
+        }
     }
 }
 
 // Initialize the simulation when page loads
 let simulation;
 
+// Global error handler
+window.addEventListener('error', (event) => {
+    console.error('Global error caught:', event.error);
+    const statusMsg = document.getElementById('statusMessage');
+    if (statusMsg) {
+        statusMsg.textContent = 'Critical Error: ' + (event.error?.message || 'Unknown error');
+        statusMsg.className = 'status-message deadlock';
+    }
+    if (simulation) {
+        simulation.running = false;
+        simulation.paused = true;
+    }
+});
+
 window.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('simulationCanvas');
-    const timelineCanvas = document.getElementById('timelineCanvas');
-    simulation = new DiningPhilosophers(canvas, timelineCanvas);
+    try {
+        const canvas = document.getElementById('simulationCanvas');
+        const timelineCanvas = document.getElementById('timelineCanvas');
+        
+        if (!canvas || !timelineCanvas) {
+            console.error('Canvas elements not found');
+            alert('Error: Canvas elements not found. Please refresh the page.');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        const timelineCtx = timelineCanvas.getContext('2d');
+        
+        if (!ctx || !timelineCtx) {
+            console.error('Could not get canvas context');
+            alert('Error: Your browser may not support canvas. Please use a modern browser.');
+            return;
+        }
+        
+        simulation = new DiningPhilosophers(canvas, timelineCanvas);
+    } catch (error) {
+        console.error('Error initializing simulation:', error);
+        alert('Error initializing simulation: ' + error.message);
+        return;
+    }
     
     // Button controls
     document.getElementById('startBtn').addEventListener('click', () => {
-        if (!simulation.running) {
-            simulation.start();
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('pauseBtn').disabled = false;
-            document.getElementById('statusMessage').textContent = 'Simulation running...';
-            document.getElementById('statusMessage').className = 'status-message';
+        try {
+            if (!simulation.running) {
+                simulation.start();
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('statusMessage').textContent = 'Simulation running...';
+                document.getElementById('statusMessage').className = 'status-message';
+            }
+        } catch (error) {
+            console.error('Error starting simulation:', error);
+            alert('Error starting simulation: ' + error.message);
         }
     });
     
