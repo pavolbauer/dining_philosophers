@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dining Philosophers - Interactive Simulation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The Dining Philosophers Problem</h1>
+            <p class="subtitle">An Interactive Simulation of Resource Sharing & Deadlocks</p>
+        </header>
+
+        <div class="main-content">
+            <div class="visualization-panel">
+                <canvas id="simulationCanvas" width="600" height="600"></canvas>
+                <div id="statusMessage" class="status-message">Click START to begin simulation</div>
+            </div>
+
+            <div class="control-panel">
+                <div class="card">
+                    <h2>Controls</h2>
+                    <div class="button-group">
+                        <button id="startBtn" class="btn btn-primary">Start</button>
+                        <button id="pauseBtn" class="btn btn-secondary" disabled>Pause</button>
+                        <button id="resetBtn" class="btn btn-danger">Reset</button>
+                        <button id="stepBtn" class="btn btn-info">Step</button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="speedSlider">Simulation Speed:</label>
+                        <input type="range" id="speedSlider" min="1" max="10" value="5" step="1">
+                        <span id="speedValue">5x</span>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="strategySelect">Strategy:</label>
+                        <select id="strategySelect">
+                            <option value="basic">Basic (C10 Rules - Right Priority)</option>
+                            <option value="random">Random Priority</option>
+                            <option value="waiter">Waiter Solution (No Deadlock)</option>
+                            <option value="resource-hierarchy">Resource Hierarchy</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Statistics</h2>
+                    <div id="statistics">
+                        <div class="stat-row">
+                            <span>Simulation Time:</span>
+                            <span id="simTime">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Events Processed:</span>
+                            <span id="eventCount">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Simultaneous Access:</span>
+                            <span id="conflictCount">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Deadlock Detected:</span>
+                            <span id="deadlockStatus">No</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Philosopher Stats</h2>
+                    <div id="philosopherStats"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="card">
+                <h2>What is the Dining Philosophers Problem?</h2>
+                <p>Five philosophers sit around a circular table. Between each pair of philosophers is a single chopstick. 
+                   To eat, a philosopher needs BOTH chopsticks (left and right). The challenge: how do they share resources 
+                   without creating deadlock or starvation?</p>
+                
+                <h3>Key Concepts:</h3>
+                <ul>
+                    <li><strong>Concurrent Access:</strong> Multiple processes trying to access the same resource simultaneously</li>
+                    <li><strong>Deadlock:</strong> When all philosophers hold one chopstick and wait forever for the other</li>
+                    <li><strong>Starvation:</strong> When a philosopher never gets to eat</li>
+                    <li><strong>Resource Hierarchy:</strong> A strategy to prevent deadlock by ordering resources</li>
+                </ul>
+
+                <h3>C10 Comparison Rules:</h3>
+                <ul>
+                    <li>Thinking and eating times follow discrete uniform distribution [1, 10]</li>
+                    <li>All philosophers start by thinking</li>
+                    <li>Hungry philosopher always picks up LEFT chopstick first, then RIGHT</li>
+                    <li>In simultaneous access: philosopher on the RIGHT gets priority</li>
+                    <li>Simulation terminates when deadlock is detected</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>Color Legend</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color thinking"></div>
+                        <span>Thinking (Blue)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color hungry"></div>
+                        <span>Hungry (Orange)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color eating"></div>
+                        <span>Eating (Green)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color waiting"></div>
+                        <span>Waiting (Red)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color deadlock"></div>
+                        <span>Deadlock (Purple)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Based on Dijkstra's classic concurrency problem | EUROSIM Comparison C4/C10</p>
+            <p>Created for educational purposes</p>
+        </footer>
+    </div>
+
+    <script src="simulation.js"></script>
+</body>
+</html>
