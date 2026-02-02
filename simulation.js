@@ -699,135 +699,135 @@ class DiningPhilosophers {
             // Calculate display range
             const maxTime = this.currentTime;
             const minTime = Math.max(0, maxTime - this.timeWindow);
-        
-        // Filter history to visible range
-        const visibleHistory = this.stateHistory.filter(h => h.time >= minTime && h.time <= maxTime);
-        
-        if (visibleHistory.length === 0) return;
-        
-        // Layout parameters
-        const margin = { top: 40, right: 40, bottom: 40, left: 80 };
-        const chartWidth = width - margin.left - margin.right;
-        const chartHeight = height - margin.top - margin.bottom;
-        const rowHeight = chartHeight / this.numPhilosophers;
-        
-        // State colors
-        const stateColors = {
-            'THINKING': '#2196F3',
-            'HUNGRY': '#ff9800',
-            'EATING': '#4CAF50',
-            'WAITING': '#f44336',
-            'DEADLOCK': '#9C27B0'
-        };
-        
-        // Draw background grid
-        ctx.strokeStyle = '#e0e0e0';
-        ctx.lineWidth = 1;
-        for (let i = 0; i <= this.numPhilosophers; i++) {
-            const y = margin.top + i * rowHeight;
-            ctx.beginPath();
-            ctx.moveTo(margin.left, y);
-            ctx.lineTo(width - margin.right, y);
-            ctx.stroke();
-        }
-        
-        // Draw vertical time grid lines (every 10 time units)
-        const timeRange = Math.max(this.timeWindow, maxTime - minTime);
-        const timeStep = Math.max(1, Math.floor(timeRange / 10));
-        for (let t = Math.ceil(minTime / timeStep) * timeStep; t <= maxTime; t += timeStep) {
-            const x = margin.left + ((t - minTime) / timeRange) * chartWidth;
-            ctx.beginPath();
-            ctx.moveTo(x, margin.top);
-            ctx.lineTo(x, height - margin.bottom);
-            ctx.stroke();
             
-            // Draw time label
-            ctx.fillStyle = '#666';
-            ctx.font = '12px Arial';
+            // Filter history to visible range
+            const visibleHistory = this.stateHistory.filter(h => h.time >= minTime && h.time <= maxTime);
+            
+            if (visibleHistory.length === 0) return;
+            
+            // Layout parameters
+            const margin = { top: 40, right: 40, bottom: 40, left: 80 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            const rowHeight = chartHeight / this.numPhilosophers;
+            
+            // State colors
+            const stateColors = {
+                'THINKING': '#2196F3',
+                'HUNGRY': '#ff9800',
+                'EATING': '#4CAF50',
+                'WAITING': '#f44336',
+                'DEADLOCK': '#9C27B0'
+            };
+            
+            // Draw background grid
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= this.numPhilosophers; i++) {
+                const y = margin.top + i * rowHeight;
+                ctx.beginPath();
+                ctx.moveTo(margin.left, y);
+                ctx.lineTo(width - margin.right, y);
+                ctx.stroke();
+            }
+            
+            // Draw vertical time grid lines (every 10 time units)
+            const timeRange = Math.max(this.timeWindow, maxTime - minTime);
+            const timeStep = Math.max(1, Math.floor(timeRange / 10));
+            for (let t = Math.ceil(minTime / timeStep) * timeStep; t <= maxTime; t += timeStep) {
+                const x = margin.left + ((t - minTime) / timeRange) * chartWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, margin.top);
+                ctx.lineTo(x, height - margin.bottom);
+                ctx.stroke();
+                
+                // Draw time label
+                ctx.fillStyle = '#666';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(t.toString(), x, height - margin.bottom + 20);
+            }
+            
+            // Draw philosopher labels
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i < this.numPhilosophers; i++) {
+                const y = margin.top + i * rowHeight + rowHeight / 2;
+                ctx.fillText(`Phil ${i}`, margin.left - 10, y);
+            }
+            
+            // Draw title
+            ctx.fillStyle = '#667eea';
+            ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(t.toString(), x, height - margin.bottom + 20);
-        }
-        
-        // Draw philosopher labels
-        ctx.fillStyle = '#333';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        for (let i = 0; i < this.numPhilosophers; i++) {
-            const y = margin.top + i * rowHeight + rowHeight / 2;
-            ctx.fillText(`Phil ${i}`, margin.left - 10, y);
-        }
-        
-        // Draw title
-        ctx.fillStyle = '#667eea';
-        ctx.font = 'bold 16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('State History Over Time', width / 2, 20);
-        
-        // Draw axis labels
-        ctx.fillStyle = '#333';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Time', width / 2, height - 5);
-        
-        // Draw state bars
-        for (let i = 0; i < visibleHistory.length - 1; i++) {
-            const current = visibleHistory[i];
-            const next = visibleHistory[i + 1];
+            ctx.fillText('State History Over Time', width / 2, 20);
             
-            const x1 = margin.left + ((current.time - minTime) / timeRange) * chartWidth;
-            const x2 = margin.left + ((next.time - minTime) / timeRange) * chartWidth;
-            const barWidth = Math.max(1, x2 - x1);
+            // Draw axis labels
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Time', width / 2, height - 5);
             
-            for (let p = 0; p < this.numPhilosophers; p++) {
-                const state = current.states[p];
-                const y = margin.top + p * rowHeight;
+            // Draw state bars
+            for (let i = 0; i < visibleHistory.length - 1; i++) {
+                const current = visibleHistory[i];
+                const next = visibleHistory[i + 1];
                 
-                ctx.fillStyle = stateColors[state] || '#ccc';
-                ctx.fillRect(x1, y + 2, barWidth, rowHeight - 4);
+                const x1 = margin.left + ((current.time - minTime) / timeRange) * chartWidth;
+                const x2 = margin.left + ((next.time - minTime) / timeRange) * chartWidth;
+                const barWidth = Math.max(1, x2 - x1);
                 
-                // Draw border
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 0.5;
-                ctx.strokeRect(x1, y + 2, barWidth, rowHeight - 4);
+                for (let p = 0; p < this.numPhilosophers; p++) {
+                    const state = current.states[p];
+                    const y = margin.top + p * rowHeight;
+                    
+                    ctx.fillStyle = stateColors[state] || '#ccc';
+                    ctx.fillRect(x1, y + 2, barWidth, rowHeight - 4);
+                    
+                    // Draw border
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(x1, y + 2, barWidth, rowHeight - 4);
+                }
             }
-        }
-        
-        // Draw the last state extending to current time
-        if (visibleHistory.length > 0) {
-            const last = visibleHistory[visibleHistory.length - 1];
-            const x1 = margin.left + ((last.time - minTime) / timeRange) * chartWidth;
-            const x2 = margin.left + ((maxTime - minTime) / timeRange) * chartWidth;
-            const barWidth = Math.max(1, x2 - x1);
             
-            for (let p = 0; p < this.numPhilosophers; p++) {
-                const state = last.states[p];
-                const y = margin.top + p * rowHeight;
+            // Draw the last state extending to current time
+            if (visibleHistory.length > 0) {
+                const last = visibleHistory[visibleHistory.length - 1];
+                const x1 = margin.left + ((last.time - minTime) / timeRange) * chartWidth;
+                const x2 = margin.left + ((maxTime - minTime) / timeRange) * chartWidth;
+                const barWidth = Math.max(1, x2 - x1);
                 
-                ctx.fillStyle = stateColors[state] || '#ccc';
-                ctx.fillRect(x1, y + 2, barWidth, rowHeight - 4);
-                
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 0.5;
-                ctx.strokeRect(x1, y + 2, barWidth, rowHeight - 4);
+                for (let p = 0; p < this.numPhilosophers; p++) {
+                    const state = last.states[p];
+                    const y = margin.top + p * rowHeight;
+                    
+                    ctx.fillStyle = stateColors[state] || '#ccc';
+                    ctx.fillRect(x1, y + 2, barWidth, rowHeight - 4);
+                    
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(x1, y + 2, barWidth, rowHeight - 4);
+                }
             }
-        }
-        
-        // Draw current time indicator
-        const currentX = margin.left + ((maxTime - minTime) / timeRange) * chartWidth;
-        ctx.strokeStyle = '#ff0000';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(currentX, margin.top);
-        ctx.lineTo(currentX, height - margin.bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        
-        // Draw legend
-        const legendX = width - margin.right - 120;
-        const legendY = margin.top + 10;
-        const states = ['THINKING', 'HUNGRY', 'EATING', 'WAITING', 'DEADLOCK'];
+            
+            // Draw current time indicator
+            const currentX = margin.left + ((maxTime - minTime) / timeRange) * chartWidth;
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(currentX, margin.top);
+            ctx.lineTo(currentX, height - margin.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw legend
+            const legendX = width - margin.right - 120;
+            const legendY = margin.top + 10;
+            const states = ['THINKING', 'HUNGRY', 'EATING', 'WAITING', 'DEADLOCK'];
         
             ctx.font = '11px Arial';
             ctx.textAlign = 'left';
